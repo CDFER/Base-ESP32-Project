@@ -6,28 +6,26 @@
 #include <WiFi.h>
 #include <AsyncTCP.h>		   //https://github.com/me-no-dev/AsyncTCP using the latest dev version from @me-no-dev
 #include <ESPAsyncWebServer.h> //ESP Async WebServer using the latest stable version from @me-no-dev
-const String localIPURL = "http://4.3.2.1";
+
+const char * ssid = "captive"; //FYI The SSID can't have a space in it.
+const char * password = "12345678";
+const IPAddress localIP(4, 3, 2, 1); // the IP address the webserver, Samsung requires the IP to be in public space
+const IPAddress gatewayIP(4, 3, 2, 1); // IP address of the network
+const String localIPURL = "http://4.3.2.1"; //URL to the webserver
 
 // Onboard Flash Storage
 #include <SPIFFS.h> //LittleFS was tested but I don't think it is as stable as SPIFFS on the ESP32 but I may change it in the future
 
 
 
-// Debug
 #define DEBUG_SERIAL if(USE_SERIAL)Serial //don't touch, enable serial in platformio.ini
 
 void accessPoint(void *parameter){
 	#define DNS_INTERVAL 10 //ms between processing dns requests: dnsServer.processNextRequest();
 
-	const char * ssid = "captive"; //FYI The SSID can't have a space in it.
-	const char * password = "12345678";
-
 	#define MAX_CLIENTS 4
 	#define WIFI_CHANNEL 6 //2.4ghz channel 6
 
-
-	const IPAddress localIP(4, 3, 2, 1); // the IP address the web server, Samsung requires the IP to be in public space
-	const IPAddress gatewayIP(4, 3, 2, 1); // IP address of the network
 	const IPAddress subnetMask(255,255,255,0);
 
 	DNSServer dnsServer;
