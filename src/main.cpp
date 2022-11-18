@@ -11,7 +11,7 @@ const char * ssid = "captive"; //FYI The SSID can't have a space in it.
 const char * password = "12345678";
 const IPAddress localIP(4, 3, 2, 1); // the IP address the webserver, Samsung requires the IP to be in public space
 const IPAddress gatewayIP(4, 3, 2, 1); // IP address of the network
-const String localIPURL = "http://4.3.2.1"; //URL to the webserver
+const String localIPURL = "http://4.3.2.1/index.html"; //URL to the webserver
 
 // Onboard Flash Storage
 #include <SPIFFS.h> //LittleFS was tested but I don't think it is as stable as SPIFFS on the ESP32 but I may change it in the future
@@ -49,42 +49,37 @@ void accessPoint(void *parameter){
 	esp_wifi_start(); //Restart WiFi
 	delay(100); //this is necessary don't ask me why
 
-	//Required
-	server.on("/connecttest.txt",[](AsyncWebServerRequest *request){request->redirect("http://logout.net");}); //windows 11 captive portal workaround
 
-	//Probably not all are Required, but some are. Others might speed things up?
-	server.on("/canonical.html",[](AsyncWebServerRequest *request){request->redirect(localIPURL);}); //firefox captive portal call home
-	server.on("/chrome-variations/seed",[](AsyncWebServerRequest *request){request->send(200);}); //chrome captive portal call home
-	server.on("/redirect",[](AsyncWebServerRequest *request){request->redirect(localIPURL);}); //microsoft redirect
-	server.on("/success.txt",[](AsyncWebServerRequest *request){request->send(200);}); //firefox captive portal call home
-	server.on("/wpad.dat",[](AsyncWebServerRequest *request){request->send(404);}); //Honestly don't understand what this is but a 404 stops win 10 keep calling this repeatedly and panicking the esp32 :)
-	server.on("/generate_204",[](AsyncWebServerRequest *request){request->redirect(localIPURL);}); //chromium? android? captive portal redirect
-	server.on("/service/update2/json",[](AsyncWebServerRequest *request){request->send(200);}); //firefox?
-	server.on("/chat",[](AsyncWebServerRequest *request){request->send(404);}); //No stop asking Whatsapp, there is no internet connection
-	server.on("/startpage",[](AsyncWebServerRequest *request){request->redirect(localIPURL);});
-
-
+	//======================== Webserver ========================
 	//WARNING IOS (and maybe macos) WILL NOT POP UP IF IT CONTAINS THE WORD "Success" https://www.esp8266.com/viewtopic.php?f=34&t=4398
 	//SAFARI (IOS) IS STUPID, G-ZIPPED FILES CAN'T END IN .GZ https://github.com/homieiot/homie-esp8266/issues/476
+	//SAFARI (IOS) there is a 128KB limit to the size of the HTML. The HTML can reference external resources/images that bring the total over 128KB
+	//SAFARI (IOS) popup browser has some severe limitations (javascript disabled, cookies disabled) 
 
-	//return index webpage
-	server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-		AsyncWebServerResponse *response = request->beginResponse(SPIFFS, "/index.htmlgz", "text/html", false);
-		response->addHeader("Content-Encoding", "gzip");
-		response->addHeader("Cache-Control", "public,max-age=31536000");
-		request->send(response);
-		DEBUG_SERIAL.print("Served Basic HTML Page\n");
-	});
+	server.serveStatic("/Water_Quality_Data.csv", SPIFFS, "/Water_Quality_Data.csv").setCacheControl("no-store"); //fetch data file every page reload
+	server.serveStatic("/index.html", SPIFFS, "/index.html").setCacheControl("max-age=120"); //serve html file
 
-	//return webpage icon
-	server.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request){
-		AsyncWebServerResponse *response = request->beginResponse(SPIFFS, "/favicon.pnggz", "image/x-icon", false);
-		response->addHeader("Content-Encoding", "gzip");
-		response->addHeader("Cache-Control", "public,max-age=31536000");
-		request->send(response);
-		DEBUG_SERIAL.print("Sent Favicon\n");
-	});
+	//Required
+	server.on("/connecttest.txt",[](AsyncWebServerRequest *request){request->redirect("http://logout.net");}); //windows 11 captive portal workaround
+	server.on("/wpad.dat",[](AsyncWebServerRequest *request){request->send(404);}); //Honestly don't understand what this is but a 404 stops win 10 keep calling this repeatedly and panicking the esp32 :)
 
+
+	//Background responses: Probably not all are Required, but some are. Others might speed things up?
+	//A Tier (commonly used by modern systems)
+	server.on("/generate_204",[](AsyncWebServerRequest *request){request->redirect(localIPURL);}); // android captive portal redirect
+	server.on("/redirect",[](AsyncWebServerRequest *request){request->redirect(localIPURL);}); //microsoft redirect
+	server.on("/hotspot-detect.html",[](AsyncWebServerRequest *request){request->redirect(localIPURL);}); //apple call home
+	server.on("/canonical.html",[](AsyncWebServerRequest *request){request->redirect(localIPURL);}); //firefox captive portal call home
+	server.on("/success.txt",[](AsyncWebServerRequest *request){request->send(200);}); //firefox captive portal call home
+	server.on("/ncsi.txt",[](AsyncWebServerRequest *request){request->redirect(localIPURL);}); //windows call home
+
+	//B Tier (uncommon)
+	// server.on("/chrome-variations/seed",[](AsyncWebServerRequest *request){request->send(200);}); //chrome captive portal call home
+	// server.on("/service/update2/json",[](AsyncWebServerRequest *request){request->send(200);}); //firefox?
+	// server.on("/chat",[](AsyncWebServerRequest *request){request->send(404);}); //No stop asking Whatsapp, there is no internet connection
+	// server.on("/startpage",[](AsyncWebServerRequest *request){request->redirect(localIPURL);});
+
+	server.serveStatic("/", SPIFFS, "/").setCacheControl("max-age=120").setDefaultFile("index.html"); //serve any file on the device when requested
 
 	server.onNotFound([](AsyncWebServerRequest *request){
 		request->redirect(localIPURL);
