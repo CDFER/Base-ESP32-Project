@@ -13,12 +13,10 @@ const IPAddress localIP(4, 3, 2, 1); // the IP address the webserver, Samsung re
 const IPAddress gatewayIP(4, 3, 2, 1); // IP address of the network
 const String localIPURL = "http://4.3.2.1/index.html"; //URL to the webserver
 
+
+
 // Onboard Flash Storage
 #include <SPIFFS.h> //LittleFS was tested but I don't think it is as stable as SPIFFS on the ESP32 but I may change it in the future
-
-
-
-#define DEBUG_SERIAL if(USE_SERIAL)Serial //don't touch, enable serial in platformio.ini
 
 void accessPoint(void *parameter){
 	#define DNS_INTERVAL 10 //ms between processing dns requests: dnsServer.processNextRequest();
@@ -34,6 +32,7 @@ void accessPoint(void *parameter){
 	WiFi.mode(WIFI_AP);
 	WiFi.softAPConfig(localIP, gatewayIP, subnetMask); //Samsung requires the IP to be in public space
 	WiFi.softAP(ssid, password, WIFI_CHANNEL, 0, MAX_CLIENTS);
+	WiFi.setSleep(false);
 	
 	dnsServer.setTTL(300); //set 5min client side cache for DNS
 	dnsServer.start(53, "*", localIP); //if DNSServer is started with "*" for domain name, it will reply with provided IP to all DNS request
@@ -83,19 +82,17 @@ void accessPoint(void *parameter){
 
 	server.onNotFound([](AsyncWebServerRequest *request){
 		request->redirect(localIPURL);
-		DEBUG_SERIAL.print("onnotfound ");
-		DEBUG_SERIAL.print(request->host());       //This gives some insight into whatever was being requested on the serial monitor
-		DEBUG_SERIAL.print(" ");
-		DEBUG_SERIAL.print(request->url());
-		DEBUG_SERIAL.print(" sent redirect to " + localIPURL +"\n");
+		ESP_LOGW("WebServer", "Page not found sent redirect to localIPURL");
+		// DEBUG_SERIAL.print("onnotfound ");
+		// DEBUG_SERIAL.print(request->host());       //This gives some insight into whatever was being requested on the serial monitor
+		// DEBUG_SERIAL.print(" ");
+		// DEBUG_SERIAL.print(request->url());
+		// DEBUG_SERIAL.print(" sent redirect to " + localIPURL +"\n");
 	});
 
 	server.begin();
 
-	DEBUG_SERIAL.print("\n");
-	DEBUG_SERIAL.print("accessPoint startup time:"); //should be around 375 for Generic ESP32 (D0WDQ6 chip, can have a higher startup time on first boot)
-	DEBUG_SERIAL.println(millis());
-	DEBUG_SERIAL.print("\n");
+	ESP_LOGI("WebServer", "Startup complete");
 
 	while (true){
 		dnsServer.processNextRequest();
@@ -103,15 +100,18 @@ void accessPoint(void *parameter){
 	}
 }
 
+
+
 void setup(){
 	#if USE_SERIAL == true
 		Serial.begin(115200);
 		while (!Serial);
-		Serial.println("\n\nBase ESP32 Project, compiled " __DATE__ " " __TIME__ "by CD_FER");
+		ESP_LOGI("Base ESP32 Project", "Compiled " __DATE__ " " __TIME__ " by CD_FER");
 	#endif
 
+
 	if (!SPIFFS.begin(true)){
-		DEBUG_SERIAL.print("can't mount SPIFFS");
+		ESP_LOGE("File System Error", "Can't mount SPIFFS");
     }
 
 	// 			Function, Name (for debugging), Stack size, Params, Priority, Handle
