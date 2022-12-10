@@ -8,7 +8,7 @@
 #define DEBUG_SERIAL if(USE_SERIAL)Serial //don't touch, enable serial in platformio.ini
 
 DNSServer dnsServer;
-AsyncWebServer server(80);
+AsyncWebServer server(80);    
 
 void setup(){ //the order of the code is really important and it is critical the the android workaround is after the dns and sofAP setup
 
