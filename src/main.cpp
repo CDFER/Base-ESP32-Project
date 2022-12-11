@@ -17,10 +17,10 @@ const String localIPURL = "http://4.3.2.1/index.html";	// URL to the webserver
 #include <SPIFFS.h>	 //LittleFS was tested but I don't think it is as stable as SPIFFS on the ESP32 but I may change it in the future
 
 void accessPoint(void *parameter) {
-  #define DNS_INTERVAL 10	 // ms between processing dns requests: dnsServer.processNextRequest();
+	#define DNS_INTERVAL 10	 // ms between processing dns requests: dnsServer.processNextRequest();
 
-  #define MAX_CLIENTS 4
-  #define WIFI_CHANNEL 6	// 2.4ghz channel 6
+	#define MAX_CLIENTS 4
+	#define WIFI_CHANNEL 6	// 2.4ghz channel 6
 
 	const IPAddress subnetMask(255, 255, 255, 0);
 
@@ -48,7 +48,7 @@ void accessPoint(void *parameter) {
 
 	//======================== Webserver ========================
 	// WARNING IOS (and maybe macos) WILL NOT POP UP IF IT CONTAINS THE WORD "Success" https://www.esp8266.com/viewtopic.php?f=34&t=4398
-	// SAFARI (IOS) IS STUPID, G-ZIPPED FILES CAN'T END IN .GZ https://github.com/homieiot/homie-esp8266/issues/476
+	// SAFARI (IOS) IS STUPID, G-ZIPPED FILES CAN'T END IN .GZ https://github.com/homieiot/homie-esp8266/issues/476 this is fixed by the webserver serve static function.
 	// SAFARI (IOS) there is a 128KB limit to the size of the HTML. The HTML can reference external resources/images that bring the total over 128KB
 	// SAFARI (IOS) popup browser has some severe limitations (javascript disabled, cookies disabled)
 
@@ -97,12 +97,11 @@ void accessPoint(void *parameter) {
 }
 
 void setup() {
-  #if USE_SERIAL == true
-	Serial.begin(115200);
-	while (!Serial)
-	  ;
-	ESP_LOGI("Base ESP32 Project", "Compiled " __DATE__ " " __TIME__ " by CD_FER");
-  #endif
+	#if USE_SERIAL == true
+		Serial.begin(115200);
+		while (!Serial);
+		ESP_LOGI("Base ESP32 Project", "Compiled " __DATE__ " " __TIME__ " by CD_FER");
+	#endif
 
 	if (!SPIFFS.begin(true)) {
 		ESP_LOGE("File System Error", "Can't mount SPIFFS");
